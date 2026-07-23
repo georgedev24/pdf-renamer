@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useStore } from '../store'
 import { TokenBuilder } from '../components/TokenBuilder'
 import { buildEntryName } from '../utils/buildName'
-import type { FormatToken } from '@shared/types'
+import type { FormatToken, ScanProgress } from '@shared/types'
 
 // Sample entry for preview
 const PREVIEW_ENTRY = {
@@ -27,6 +27,7 @@ export function SetupPage() {
   const { settings, setSettings, setTab, setEntries, isScanning, setIsScanning, setScanError, scanError } =
     useStore()
   const [localSep, setLocalSep] = useState(settings.separator)
+  const [scanProgress, setScanProgress] = useState<ScanProgress | null>(null)
 
   const previewName = buildEntryName(PREVIEW_ENTRY, settings)
 
@@ -46,7 +47,9 @@ export function SetupPage() {
   async function handleScan() {
     if (!settings.sourceFolder) return
     setScanError('')
+    setScanProgress(null)
     setIsScanning(true)
+    const unsub = window.api.onScanProgress(setScanProgress)
     try {
       const result = await window.api.scanFolder(settings.sourceFolder)
       setEntries(result.entries, result.imagePdfs)
@@ -56,7 +59,9 @@ export function SetupPage() {
     } catch (e: unknown) {
       setScanError(e instanceof Error ? e.message : String(e))
     } finally {
+      unsub()
       setIsScanning(false)
+      setScanProgress(null)
     }
   }
 
@@ -199,6 +204,27 @@ export function SetupPage() {
         </div>
       )}
 
+      {isScanning && (
+        <div className="card space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-300 truncate max-w-xs font-mono text-xs">
+              {scanProgress?.fileName ?? 'Εκκίνηση σάρωσης…'}
+            </span>
+            <span className="text-gray-400 shrink-0 ml-2">
+              {scanProgress ? `${scanProgress.index} / ${scanProgress.total}` : ''}
+            </span>
+          </div>
+          <div className="w-full bg-gray-800 rounded-full h-2.5 overflow-hidden">
+            <div
+              className="h-full bg-blue-500 transition-all duration-150"
+              style={{
+                width: `${scanProgress && scanProgress.total > 0 ? Math.round((scanProgress.index / scanProgress.total) * 100) : 0}%`
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-end">
         <button
           className="btn-primary px-6 py-2.5 text-base"
@@ -211,7 +237,7 @@ export function SetupPage() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
               </svg>
-              Scanning…
+              {scanProgress ? `Σάρωση ${scanProgress.index}/${scanProgress.total}…` : 'Σάρωση…'}
             </>
           ) : (
             '🔍 Σάρωση Φακέλου →'

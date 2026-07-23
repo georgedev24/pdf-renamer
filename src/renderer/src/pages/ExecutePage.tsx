@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useStore } from '../store'
+import { resolveDuplicateNames } from '../utils/buildName'
 import type { ExecuteProgress } from '@shared/types'
 
 interface LogLine {
@@ -20,10 +21,16 @@ export function ExecutePage() {
     }
   }, [log])
 
-  const allEntries = [
-    ...entries,
-    ...imagePdfs.filter((e) => !e.skip && (e.customName || e.proposedName))
-  ]
+  // Bake in the same Windows-style (2)/(3) numbering shown in the Preview tab,
+  // so the file actually written matches exactly what was previewed.
+  const allEntries = useMemo(() => {
+    const raw = [...entries, ...imagePdfs.filter((e) => !e.skip && (e.customName || e.proposedName))]
+    const resolved = resolveDuplicateNames(raw)
+    return raw.map((e) => {
+      const finalName = resolved.get(e.id)
+      return finalName ? { ...e, customName: finalName, proposedName: finalName } : e
+    })
+  }, [entries, imagePdfs])
   const total = allEntries.filter((e) => !e.skip).length
 
   async function handleRun() {
@@ -44,7 +51,7 @@ export function ExecutePage() {
       const icon = p.status === 'ok' ? '✓' : p.status === 'skip' ? '⏭' : '✗'
       setLog((prev) => [
         ...prev,
-        { status: p.status, text: `${icon} ${p.fileName}${p.message ? ' — ' + p.message : ''}` }
+        { status: p.status, text: `${icon} ${p.fileName}${p.message ? '  -  ' + p.message : ''}` }
       ])
     })
 

@@ -1,6 +1,6 @@
 {
   "name": "pdf-renamer",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Smart PDF Renamer",
   "main": "./out/main/index.js",
   "scripts": {

@@ -50,6 +50,12 @@ export interface ScanResult {
   imagePdfs: PdfEntry[]
 }
 
+export interface ScanProgress {
+  index: number
+  total: number
+  fileName: string
+}
+
 export interface ExecuteProgress {
   index: number
   total: number
@@ -68,6 +74,7 @@ export interface ExecuteResult {
 export interface ElectronAPI {
   openFolder: () => Promise<string | null>
   scanFolder: (sourceFolder: string) => Promise<ScanResult>
+  onScanProgress: (callback: (p: ScanProgress) => void) => () => void
   execute: (
     entries: PdfEntry[],
     settings: AppSettings

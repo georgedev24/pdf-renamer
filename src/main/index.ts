@@ -10,6 +10,7 @@ import type {
   ScanResult,
   ExecuteResult,
   ExecuteProgress,
+  ScanProgress,
   UpdateStatus
 } from '../shared/types'
 
@@ -54,13 +55,24 @@ async function extractText(filePath: string): Promise<string> {
   }
 }
 
+// Yields to the event loop so the main process can flush pending IPC/window
+// messages between files, instead of stalling for the whole scan duration.
+function tick(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve))
+}
+
 // ── Scan folder ───────────────────────────────────────────────────────────────
-async function scanFolder(sourceFolder: string): Promise<ScanResult> {
+async function scanFolder(
+  sourceFolder: string,
+  onProgress?: (p: ScanProgress) => void
+): Promise<ScanResult> {
   const files = walkPdfs(sourceFolder)
   const entries: PdfEntry[] = []
   const imagePdfs: PdfEntry[] = []
+  const total = files.length
 
-  for (const { path: filePath, subfolder, name } of files) {
+  for (let i = 0; i < files.length; i++) {
+    const { path: filePath, subfolder, name } = files[i]
     const stem = name.replace(/\.pdf$/i, '')
     const text = await extractText(filePath)
     const isImagePdf = text.length < MIN_TEXT_CHARS
@@ -87,19 +99,23 @@ async function scanFolder(sourceFolder: string): Promise<ScanResult> {
     } else {
       entries.push(entry)
     }
+
+    onProgress?.({ index: i + 1, total, fileName: name })
+    await tick()
   }
 
   return { entries, imagePdfs }
 }
 
 // ── Unique path helper ────────────────────────────────────────────────────────
+// Mirrors Windows Explorer's "keep both files" naming: name.pdf, name (2).pdf, name (3).pdf, …
 function uniquePath(dir: string, name: string): string {
   const stem = name.replace(/\.pdf$/i, '')
   let candidate = join(dir, name)
   if (!existsSync(candidate)) return candidate
   let i = 2
   while (true) {
-    candidate = join(dir, `${stem}-${i}.pdf`)
+    candidate = join(dir, `${stem} (${i}).pdf`)
     if (!existsSync(candidate)) return candidate
     i++
   }
@@ -187,8 +203,8 @@ ipcMain.handle('dialog:openFolder', async () => {
   return result.canceled ? null : result.filePaths[0]
 })
 
-ipcMain.handle('pdf:scan', async (_, sourceFolder: string) => {
-  return await scanFolder(sourceFolder)
+ipcMain.handle('pdf:scan', async (event, sourceFolder: string) => {
+  return await scanFolder(sourceFolder, (p) => event.sender.send('pdf:scanProgress', p))
 })
 
 ipcMain.handle(

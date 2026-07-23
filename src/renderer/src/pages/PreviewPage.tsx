@@ -1,14 +1,21 @@
 import { useState, useMemo } from 'react'
 import { useStore } from '../store'
-import { buildEntryName } from '../utils/buildName'
+import { buildEntryName, resolveDuplicateNames } from '../utils/buildName'
 import type { PdfEntry } from '@shared/types'
+
+// Resolves same-batch name collisions across both tables, same order pdf:execute
+// processes them in, so what's shown here is exactly what gets written to disk.
+function useResolvedNames(entries: PdfEntry[], imagePdfs: PdfEntry[]): Map<string, string> {
+  return useMemo(() => resolveDuplicateNames([...entries, ...imagePdfs]), [entries, imagePdfs])
+}
 
 // ── Auto-renamed table ────────────────────────────────────────────────────────
 function AutoTable() {
-  const { entries, settings, updateEntry } = useStore()
+  const { entries, imagePdfs, settings, updateEntry } = useStore()
   const [search, setSearch] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editVal, setEditVal] = useState('')
+  const resolvedNames = useResolvedNames(entries, imagePdfs)
 
   const filtered = useMemo(
     () =>
@@ -108,9 +115,17 @@ function AutoTable() {
                       title="Κλικ για επεξεργασία"
                     >
                       <span className={`truncate max-w-xs ${e.customName ? 'text-yellow-300' : 'text-green-300'}`}>
-                        {e.proposedName}
+                        {resolvedNames.get(e.id) ?? e.proposedName}
                       </span>
                       <span className="text-gray-600 text-xs">.pdf</span>
+                      {!e.skip && resolvedNames.get(e.id) !== (e.customName || e.proposedName).trim() && (
+                        <span
+                          className="text-orange-400 text-xs"
+                          title="Διπλότυπο όνομα με άλλο αρχείο: προστέθηκε αυτόματα αρίθμηση, όπως κάνουν τα Windows"
+                        >
+                          ⚠
+                        </span>
+                      )}
                       <span className="opacity-0 group-hover:opacity-100 text-gray-500 text-xs">✎</span>
                     </div>
                   )}
@@ -139,7 +154,8 @@ function AutoTable() {
 
 // ── Manual rename table ───────────────────────────────────────────────────────
 function ManualTable() {
-  const { imagePdfs, updateImagePdf } = useStore()
+  const { entries, imagePdfs, updateImagePdf } = useStore()
+  const resolvedNames = useResolvedNames(entries, imagePdfs)
 
   const allSelected = imagePdfs.length > 0 && imagePdfs.every((e) => !e.skip)
   function toggleAll() {
@@ -206,6 +222,14 @@ function ManualTable() {
                       placeholder="Εισάγετε νέο όνομα (χωρίς .pdf)"
                     />
                     <span className="text-gray-500 text-xs">.pdf</span>
+                    {!e.skip && resolvedNames.get(e.id) !== e.customName.trim() && resolvedNames.get(e.id) && (
+                      <span
+                        className="text-orange-400 text-xs"
+                        title={`Διπλότυπο όνομα με άλλο αρχείο: θα αποθηκευτεί ως "${resolvedNames.get(e.id)}.pdf"`}
+                      >
+                        ⚠
+                      </span>
+                    )}
                   </div>
                 </td>
                 <td className="px-3 py-1.5 text-center">

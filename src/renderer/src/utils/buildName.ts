@@ -45,6 +45,28 @@ export function buildEntryName(entry: PdfEntry, settings: AppSettings): string {
     .slice(0, 150)
 }
 
+// Resolves same-batch name collisions the way Windows Explorer does when you
+// "keep both files": first one keeps the plain name, the rest get " (2)", " (3)", …
+// Order matters  -  it must match the order entries are actually written in
+// (see ExecutePage's allEntries), so the preview and the real run agree.
+export function resolveDuplicateNames(items: PdfEntry[]): Map<string, string> {
+  const seen = new Map<string, number>()
+  const resolved = new Map<string, string>()
+
+  for (const e of items) {
+    if (e.skip) continue
+    const base = (e.customName || e.proposedName).trim()
+    if (!base) continue
+
+    const key = base.toLowerCase()
+    const count = (seen.get(key) ?? 0) + 1
+    seen.set(key, count)
+    resolved.set(e.id, count === 1 ? base : `${base} (${count})`)
+  }
+
+  return resolved
+}
+
 export const DEFAULT_TOKENS: FormatToken[] = [
   { id: 'tok-date', type: 'DATE', label: '📅 ΗΜΕΡΟΜΗΝΙΑ' },
   { id: 'tok-dtype', type: 'DOCTYPE', label: '📄 ΤΥΠΟΣ' },

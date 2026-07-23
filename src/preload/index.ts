@@ -1,10 +1,23 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ElectronAPI, PdfEntry, AppSettings, ExecuteProgress, UpdateStatus } from '../shared/types'
+import type {
+  ElectronAPI,
+  PdfEntry,
+  AppSettings,
+  ExecuteProgress,
+  ScanProgress,
+  UpdateStatus
+} from '../shared/types'
 
 const api: ElectronAPI = {
   openFolder: () => ipcRenderer.invoke('dialog:openFolder'),
 
   scanFolder: (sourceFolder) => ipcRenderer.invoke('pdf:scan', sourceFolder),
+
+  onScanProgress: (callback) => {
+    const handler = (_: Electron.IpcRendererEvent, p: ScanProgress) => callback(p)
+    ipcRenderer.on('pdf:scanProgress', handler)
+    return () => ipcRenderer.removeListener('pdf:scanProgress', handler)
+  },
 
   execute: (entries, settings) => ipcRenderer.invoke('pdf:execute', entries, settings),
 
@@ -42,4 +55,4 @@ if (process.contextIsolated) {
   window.api = api
 }
 
-export type { ElectronAPI, PdfEntry, AppSettings, ExecuteProgress, UpdateStatus }
+export type { ElectronAPI, PdfEntry, AppSettings, ExecuteProgress, ScanProgress, UpdateStatus }
