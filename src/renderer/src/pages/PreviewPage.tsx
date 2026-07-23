@@ -139,7 +139,13 @@ function AutoTable() {
 
 // ── Manual rename table ───────────────────────────────────────────────────────
 function ManualTable() {
-  const { imagePdfs, settings, updateImagePdf } = useStore()
+  const { imagePdfs, updateImagePdf } = useStore()
+
+  const allSelected = imagePdfs.length > 0 && imagePdfs.every((e) => !e.skip)
+  function toggleAll() {
+    const newSkip = allSelected
+    imagePdfs.forEach((e) => updateImagePdf(e.id, { skip: newSkip }))
+  }
 
   if (imagePdfs.length === 0) {
     return (
@@ -151,6 +157,14 @@ function ManualTable() {
 
   return (
     <div className="flex flex-col h-full">
+      {/* toolbar */}
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-xs text-gray-500">{imagePdfs.length} αρχεία</span>
+        <button className="btn-secondary text-xs" onClick={toggleAll}>
+          {allSelected ? 'Αποεπιλογή όλων' : 'Επιλογή όλων'}
+        </button>
+      </div>
+
       <div className="flex-1 overflow-auto rounded-lg border border-gray-800">
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-gray-900 border-b border-gray-800 z-10">
