@@ -1,0 +1,41 @@
+appId: com.pdfrenamer.app
+productName: PDF Renamer
+copyright: Copyright © 2026
+
+directories:
+  buildResources: resources
+
+publish:
+  provider: github
+  owner: georgedev24
+  repo: pdf-renamer
+
+files:
+  - out/**/*
+  - node_modules/**/*
+  - '!node_modules/.cache'
+  - '!**/*.map'
+
+asarUnpack:
+  - node_modules/pdf-parse/**
+
+win:
+  executableName: pdf-renamer
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+
+nsis:
+  artifactName: ${name}-setup-${version}.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+
+portable:
+  artifactName: ${name}-portable-${version}.${ext}
