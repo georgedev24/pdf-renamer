@@ -62,7 +62,9 @@ export const useStore = create<Store>((set, get) => ({
       imagePdfs: imagePdfs.map((e) => ({
         ...e,
         proposedName: buildEntryName(e, settings)
-      }))
+      })),
+      // A fresh scan means any previous run's summary is stale
+      executeResult: null
     })
   },
 

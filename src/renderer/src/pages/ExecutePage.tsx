@@ -195,6 +195,15 @@ export function ExecutePage() {
             <button className="btn-secondary" onClick={openOutputFolder}>
               📂 Άνοιγμα Φακέλου Εξόδου
             </button>
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                setExecuteResult(null)
+                setLog([])
+              }}
+            >
+              🔁 Νέα Εκτέλεση
+            </button>
             <button className="btn-secondary" onClick={() => setTab('setup')}>
               ← Πίσω στις Ρυθμίσεις
             </button>
