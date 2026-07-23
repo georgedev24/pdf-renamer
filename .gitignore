@@ -3,5 +3,6 @@ out/
 dist/
 build.log
 *.log
+*.tsbuildinfo
 .DS_Store
 Thumbs.db
