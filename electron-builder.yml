@@ -9,6 +9,7 @@ publish:
   provider: github
   owner: georgedev24
   repo: pdf-renamer
+  draft: false
 
 files:
   - out/**/*
